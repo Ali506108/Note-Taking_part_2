@@ -28,6 +28,22 @@ public class NoteController {
         return ResponseEntity.ok(grammarIssues);
     }
 
+    @GetMapping("/id/{id}")
+    public ResponseEntity<List<String>> checkNote(@PathVariable long id) throws IOException {
+        List<String> grammarIssues = noteService.checkGrammarNote(id);
+
+        if (grammarIssues == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build(); // note not found
+        }
+
+        if (grammarIssues.isEmpty()) {
+            return ResponseEntity.ok(List.of("No grammar issues found."));
+        }
+
+        return ResponseEntity.ok(grammarIssues);
+    }
+
+
 
     @PostMapping
     public ResponseEntity<Note> createNote(@RequestBody NoteDto noteDto) {

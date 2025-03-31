@@ -38,8 +38,9 @@ public class NoteService {
     public List<String> checkGrammarNote(long id) throws IOException {
         Note note = repository.findById(id).orElse(null);
         log.info("Checking grammar note with id " + id);
+        log.info("Checking grammar note with id " + id);
         if (note == null) {
-            return List.of();
+            return null;
         }
 
         JLanguageTool tool = new JLanguageTool(new English());
@@ -49,7 +50,6 @@ public class NoteService {
         return matches.stream()
                 .map(match -> "Line " + match.getLine() + ", column " + match.getColumn() + ": " + match.getMessage())
                 .toList();
-
     }
 
     public List<String> checkGrammar(String text) throws IOException {
@@ -99,38 +99,7 @@ public class NoteService {
         return notes;
     }
 
-    public Optional<Note> getNoteById(Long id) {
-        log.info("Get note by id: " + id);
-        String key = NOTE_CACHE_PREFIX + id;
-        Note cached = (Note) redisTemplate.opsForValue().get(key);
-        log.info("Get note by id: " + id);
-        if (cached != null) {
-            return Optional.of(cached);
-        }
 
-        log.info("Get note by id: " + id);
-        Optional<Note> note = repository.findById(id);
-        log.info("Get note by id: " + id);
-        note.ifPresent(n -> redisTemplate.opsForValue().set(key, n, 10, TimeUnit.MINUTES));
-        return note;
-    }
-
-    public String renderHtml(Long id) {
-        String key = NOTE_CACHE_PREFIX + id;
-        log.info("Get note by id: " + id);
-        String cachedHtml = (String) redisTemplate.opsForValue().get(key);
-        if (cachedHtml != null) {
-            return cachedHtml;
-        }
-        log.info("Get note by id: " + id);
-
-        Note note = repository.findById(id).orElseThrow(() -> new RuntimeException("Note not found"));
-        String html = renderer.render(parser.parse(note.getContent()));
-        log.info("Get note by id: " + id);
-        redisTemplate.opsForValue().set(key, html, 10, TimeUnit.MINUTES);
-        log.info("Get note by id: " + id);
-        return html;
-    }
 
     public String renderHtmlForExam(long id) {
         String htmlKey = NOTE_CACHE_SUFFIX + id; // ✅ Properly separate cache key for HTML
@@ -150,5 +119,26 @@ public class NoteService {
         // Store with the right key
         return html;
     }
+
+
+    public Note createNoteAndParser(NoteDto note) {
+        log.info("Creating note: " + note);
+        if (note.getTitle() == null || note.getTitle().isEmpty()) {
+            throw new IllegalArgumentException("Note title cannot be null or empty");
+        }
+
+        log.info("Note title: " + note.getTitle());
+        Note noteEntity = new Note();
+        noteEntity.setTitle(note.getTitle());
+        noteEntity.setContent(note.getContent());
+        Note save = repository.save(noteEntity);
+        log.info("Note created: " + save);
+
+        redisTemplate.opsForValue().set(NOTE_CACHE_PREFIX + save.getId(), save, 10, TimeUnit.MINUTES);
+        redisTemplate.delete(NOTE_CACHE_SUFFIX + save.getId()); // invalidate HTML cache
+        log.info("Note created: " + save);
+        return save;
+    }
+
 
 }
