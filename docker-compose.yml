@@ -1,0 +1,44 @@
+
+services:
+  postgres:
+    image: postgres:16
+    container_name: note_postgres
+    environment:
+      POSTGRES_DB: Note
+      POSTGRES_USER: root
+      POSTGRES_PASSWORD: root
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - note-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U root"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7
+    container_name: note_redis
+    command: ["redis-server", "--requirepass", "root2025"]
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - note-net
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "root2025", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+networks:
+  note-net:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  redis_data:
