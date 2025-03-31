@@ -7,6 +7,7 @@ import org.faang.note.service.NoteService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.util.List;
@@ -50,6 +51,26 @@ public class NoteController {
         Note note = noteService.createNote(noteDto);
         return new ResponseEntity<>(note, HttpStatus.CREATED);
     }
+
+
+    @PostMapping("/upload")
+    public ResponseEntity<Note> uploadMarkdownFile(
+            @RequestParam("file") MultipartFile file,
+            @RequestParam("title") String title) throws IOException {
+
+        if (file.isEmpty() || !file.getOriginalFilename().endsWith(".md")) {
+            return ResponseEntity.badRequest().build();
+        }
+
+        String content = new String(file.getBytes());
+        NoteDto noteDto = new NoteDto();
+        noteDto.setTitle(title);
+        noteDto.setContent(content);
+
+        Note savedNote = noteService.createNoteAndParser(noteDto);
+        return new ResponseEntity<>(savedNote, HttpStatus.CREATED);
+    }
+
 
 
     @GetMapping

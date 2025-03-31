@@ -55,7 +55,6 @@ public class NoteService {
     public List<String> checkGrammar(String text) throws IOException {
         log.info("Checking grammar");
         JLanguageTool tool = new JLanguageTool(new English());
-        long startTime = System.currentTimeMillis();
         List<RuleMatch> matches = tool.check(text);
         log.info("Finished checking grammar");
         return matches.stream()
@@ -121,7 +120,7 @@ public class NoteService {
     }
 
 
-    public Note createNoteAndParser(NoteDto note) {
+    public Note createNoteAndParser(NoteDto note) throws IOException {
         log.info("Creating note: " + note);
         if (note.getTitle() == null || note.getTitle().isEmpty()) {
             throw new IllegalArgumentException("Note title cannot be null or empty");
@@ -129,8 +128,14 @@ public class NoteService {
 
         log.info("Note title: " + note.getTitle());
         Note noteEntity = new Note();
+        JLanguageTool tool = new JLanguageTool(new English());
+
         noteEntity.setTitle(note.getTitle());
-        noteEntity.setContent(note.getContent());
+
+        List<RuleMatch> matches = tool.check(note.getContent());
+
+
+        noteEntity.setContent(renderer.render(parser.parse(note.getContent())));
         Note save = repository.save(noteEntity);
         log.info("Note created: " + save);
 
